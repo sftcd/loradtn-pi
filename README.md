@@ -18,6 +18,14 @@
 
 This repo will contain scripts, code and results related to all that.
 
-Contacts: Stephen Farrell/stephen.farrell@cs.tcd.ie and Robert Cooney (4th year student)
+Contacts: 
+	- Stephen Farrell/stephen.farrell@cs.tcd.ie, will try hack the h/w bits together, undoubtedly
+	  requiring help from
+	- Kerry Hartnett/kerry@tolerantneworks.com, a colleague in Tolerant Networks Limited, but
+	  hopefully with most of the work done by...  
+	- Robert Cooney, a 4th year student, who'll be re-factoring the power management scheme/code
+	  for his final year project.
+	
+
 
 

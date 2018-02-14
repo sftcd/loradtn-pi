@@ -119,6 +119,7 @@ phidgets USB to the pi and turn 'em on...
 
 - test that the wittypi does stop and start the pi: run the wittypi qt thing, 
 set to shutdown "shortly" and to startup 5 minutes later
+	- we tried that and it worked seemingly fine:-)
 
 		
 

@@ -65,8 +65,32 @@ we start...
 	- same clock error on boot, hit space again...
 	- synced time from system -> RTC (as we're on n/w we have NTP)
 
-## Phidgets/PBM build
+## Phidgets build/install
 
+Our existing pbmd uses phidgets (for voltmeter, 2xammeter and solid-state
+relay). *TODO: explain those somewhere*
 
+Building those was easy enough first time, hopefully also 2nd time:-)
 
-Next up... do the WittyPi install...
+- We're following [these](http://www.instructables.com/id/Getting-Started-with-Phidgets-on-the-Raspberry-Pi/) 
+  instructions for building the phidgets library
+- We'll build in code/phidgets...
+	- there are some warnings we're ignoring for now - check those some day 
+
+## Existing dodgy-pbm build...
+
+Note that we hope to do away with this but for now here's HOWTO
+
+- we need mercurial
+
+		sudo apt install mercurial
+		cd ~/code
+		hg clone https://basil.dsg.cs.tcd.ie/code/n4c/pbm
+		cd pbm
+		make
+		make ker-on ker-off # those aren't in the all target for some reason
+		sudo make install
+
+Now we should be ready to mount in the box and see what happens...
+
+Next up... pbm

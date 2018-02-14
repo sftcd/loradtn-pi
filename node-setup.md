@@ -109,3 +109,16 @@ phidgets USB to the pi and turn 'em on...
 		sudo ./trypbm.sh
 		...output...
 
+- to setup pbm as a service:
+
+		cd ~/code/pbm
+		sudo make install-service
+
+- that'll start the pbmd running for 22:00 to 06:00 sleeping (not that
+  sleeping works vi pi right now)
+
+- test that the wittypi does stop and start the pi: run the wittypi qt thing, 
+set to shutdown "shortly" and to startup 5 minutes later
+
+		
+

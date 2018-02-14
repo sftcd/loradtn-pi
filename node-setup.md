@@ -93,4 +93,19 @@ Note that we hope to do away with this but for now here's HOWTO
 
 Now we should be ready to mount in the box and see what happens...
 
-Next up... pbm
+## Basic testing
+
+Attach your new pi/wittypi usb power cable to the solar charger and the
+phidgets USB to the pi and turn 'em on...
+
+- shutdown the pi gracefully
+- detact power from the wittypi
+- attach the phidgets USB
+- attach the USB power to the wittypi and solar charter
+- hit the wittypi power button
+- start the pbm test code...
+
+		cd ~/code/pbm
+		sudo ./trypbm.sh
+		...output...
+

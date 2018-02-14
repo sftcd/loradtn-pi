@@ -21,7 +21,7 @@ we start...
 # Getting the Pi/Witty-Pi setup...
 
 - WittyPi-2 [user guide](http://www.uugear.com/doc/WittyPi2_UserManual.pdf)
-- That says to not use NOOBS but to rather [directly install the OS](https://www.raspberrypi.org/documentation/installation/installing-images/README.md)
+- That says to not use NOOBS but to rather [directly install the OS](https://www.raspberrypi.org/documentation/installation/installing-images/README.md), so we'll do that first...
 
 ## Installing the Pi
 
@@ -47,6 +47,25 @@ we start...
 
 		sudo apt update
 		sudo apt upgrade
+
+## WittyPi install
+
+- Back to: WittyPi-2 [user guide](http://www.uugear.com/doc/WittyPi2_UserManual.pdf)
+- That talks about Raspbian jessie but we're on stretch so we'll see if that makes
+  a difference...
+- We'll try run the installer from a code/wittypi directory
+	- said yes to removing fake_hwclock
+	- said yes to adding Qt GUI stuff, even though we shouldn't need it
+	- after <1 min, it told me to reboot...did that via ```sudo reboot```
+	  (first time I've rebooted a Pi that way)
+	- got an error about "could not get clock", had to hit keyboard to continue (not sure?)
+	- after reboot code/wittypi/WittyPi has the scripts...
+	- shutdown again to mount wittypi on board...
+	- gotta hit the wittypi power button after connecting to power
+	- same clock error on boot, hit space again...
+	- synced time from system -> RTC (as we're on n/w we have NTP)
+
+## Phidgets/PBM build
 
 
 

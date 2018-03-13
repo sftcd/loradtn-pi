@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "syslog.h": "c",
+        "phidgets.h": "c"
+    }
+}

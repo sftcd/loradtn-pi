@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <phidget21.h>
 #include <syslog.h>
+#include "phidgets.h"
 
 #define BATTERY_LOG "/var/log/battery-new.log" 
 #define SNAP_LOG "/var/log/battery-snapshot-new.log" 
@@ -42,19 +43,14 @@ int updateLogfile(FILE *logfile,
 	int state,
 	int spiking,
 	const char *progName);
-
 int updateSnapshotfile(const char *snapFileName, int voltage, int amps,  int state, int spiking);
-
+void getTimeString (int wakeTimeSec, char *wakeTimeStr);
 int clearSnapFile(char* snapFileName);
+char* getProgName(char* path);
+int getSleepTime(char* mode);
+char* getStateDesc(int state);
 
-char* getProgName(char* path)
-{
-	char* ret = strrchr( path, '/' );	   //returns null if '/' not found
-	if( ret == NULL )
-		return path;
-	else
-		return ret + 1;
-}
+
  
 void init(int argc, char* argv[])
 {
@@ -62,22 +58,15 @@ void init(int argc, char* argv[])
     clearSnapFile(SNAP_LOG);
 }
  
-int getSleepTime(char* mode)
-{
-    if(!strncmp(mode,GREEDY_STR,min(strlen(mode),strlen(GREEDY_STR)))){
-        return GREEDY_SLEEP;
-    } else if(!strncmp(mode,MODERATE_STR,min(strlen(mode),strlen(MODERATE_STR)))){
-        return MODERATE_SLEEP;
-    }
-    return CONSERVATIVE_SLEEP;
-}
+
  
  
 int main(int argc, char* argv[])
 {
     //parse args, init
     char *progName = getProgName(argv[0]);
-    sleepDuration = (int)argv[1];
+	
+    sleepDuration = atoi(argv[1]);
     mode = argv[2];
     
     init(argc, argv);
@@ -88,15 +77,88 @@ int main(int argc, char* argv[])
     int voltage = 0;
     int amps = 0;
     int ampsDUT = 0;
-    int spiking = 0;
     int state = 1;
 
     time_t rawTime;
 	struct tm * timeInfo;
     int sleepTime;
     //get voltage, amps, amps DUT
+	int prevVoltage = 0;
+	int newState = 0;
+	int spiking;
+	int spikeCount;
+	
+	time_t prevVoltageTime, voltageTime;
+	
+	
+	char *wakeTimeStr = malloc(20);
+
+
+	createInterfaceKit();
+    createLCDHandle();
+	
+	/******************************************************************************************/
+	
+	setupHandlers();	// Set up handlers for the Interface Kit & TextLCD
+
+	openPhidgets();
+
+	//get the program to wait 10 seconds for an TextLCD device to be attached
+    if( checkLCD() == -1 ){
+        return -1;
+    }
+	
+	//display_LCD_properties(LCD);	//Display the properties of the attached Text LCD device
+	
+	//Set the LCD startup screen  
+    setStartupDisplay();
+		
+	
+	//wait 5 seconds for attachment of the Interface Kit
+	if( checkIFK() == -1){
+		return -1;
+	}
+	//display_IFK_properties(IFK);	//Display the properties of the attached Interface Kit device
+	
+	
+	//CPhidgetInterfaceKit_getSensorChangeTrigger (IFK, 0, &lightTrigger);
+	
+	/******************************************************************************************/
+	
+	time (&prevVoltageTime);			//initialise previous voltage time 
+	prevVoltage = getVoltage();	  //ininitalise voltage		
+		
+	spiking = 1;
+	spikeCount = 0;
+	while ( spiking ) 
+	{
+		sleep(10);
+		time (&voltageTime);
+		voltage = getVoltage(); 
+		spiking = testVoltageSpike(&prevVoltage, &prevVoltageTime, &voltage, &voltageTime);   
+		
+		if ( spiking ) 
+			syslog ( LOG_ERR, "Initial voltage spike occured - acquiring new voltage to retest" );	
+			
+		if ( spikeCount++ > SPIKELIMIT ) 
+		{
+			spikeError(spikeCount);
+
+			
+			return 1;
+		}		 
+	}
     
     while(1){
+
+		time (&voltageTime);
+		//Voltage = getVoltage(IFK);			 
+		spiking = testVoltageSpike(&prevVoltage, &prevVoltageTime, &voltage, &voltageTime);
+		
+
+		
+		ampsDUT = getDUTAmps();
+		amps = getAmps();
 
         updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName);
         updateSnapshotfile (SNAP_LOG, voltage, amps, state, spiking);
@@ -109,13 +171,24 @@ int main(int argc, char* argv[])
             state = UP_STATE;
         }
 
-       //get current time
-       time ( &rawTime );
-	   timeInfo = localtime ( &rawTime );
-       sleepTime = getSleepTime(mode);
 
-       //act based on state
-       if(state == SLEEP_STATE){
+
+		getTimeString (0, wakeTimeStr);
+		updateDisplay(voltage,amps, wakeTimeStr, getStateDesc(newState));
+	
+		// Do what the state demands		
+		syslog ( LOG_DEBUG, "Begin main while loop: State is %s", getStateDesc(newState) ); 
+
+
+       	//get current time
+       	time ( &rawTime );
+	   	timeInfo = localtime ( &rawTime );
+       	sleepTime = getSleepTime(mode);
+
+	   
+
+       	//act based on state
+       	if(state == SLEEP_STATE){
             if(timeInfo->tm_hour >= sleepTime){
                 // sleep script
             } else {
@@ -140,6 +213,20 @@ int main(int argc, char* argv[])
         sleep(sleepDuration);
     }
     
+}
+
+void getTimeString (int wakeTimeSec, char *wakeTimeStr)
+{
+	time_t rawtime;
+	struct tm * timeinfo;
+
+	time ( &rawtime );
+	//rawtime = rawtime + wakeTimeSec+7200; // ToDo: change to properly display local time
+	rawtime = rawtime + wakeTimeSec; // ToDo: change to properly display local time
+	timeinfo = localtime ( &rawtime );
+
+	strftime (wakeTimeStr, 20, "%H:%M", timeinfo);
+	return;
 }
 
 int clearSnapFile(char *snapFileName)
@@ -215,4 +302,23 @@ int updateLogfile(FILE *logfile, int voltage, int amps, int dutAmps, int state, 
 		fflush( logfile );
 		return 0;
 	}
+}
+
+char* getProgName(char* path)
+{
+	char* ret = strrchr( path, '/' );	   //returns null if '/' not found
+	if( ret == NULL )
+		return path;
+	else
+		return ret + 1;
+}
+ 
+int getSleepTime(char* mode)
+{
+    if(!strncmp(mode,GREEDY_STR,min(strlen(mode),strlen(GREEDY_STR)))){
+        return GREEDY_SLEEP;
+    } else if(!strncmp(mode,MODERATE_STR,min(strlen(mode),strlen(MODERATE_STR)))){
+        return MODERATE_SLEEP;
+    }
+    return CONSERVATIVE_SLEEP;
 }

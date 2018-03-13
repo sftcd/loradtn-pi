@@ -25,10 +25,14 @@
 #define GREEDY_SLEEP 20
 #define MODERATE_SLEEP 18
 #define CONSERVATIVE_SLEEP 16
+
+CPhidgetTextLCDHandle LCD;
+CPhidgetInterfaceKitHandle IFK;
  
 char *batteryLogLocation, *snapshotLocation, bootflag, *mode;// = "/var/log/battery.log";
  
 int sleepDuration, sleepTime, wakeTime;
+
 
 FILE *logFile; 
 
@@ -84,7 +88,7 @@ int main(int argc, char* argv[])
     int sleepTime;
     //get voltage, amps, amps DUT
 	int prevVoltage = 0;
-	int newState = 0;
+	int newState = 1;
 	int spiking;
 	int spikeCount;
 	
@@ -93,29 +97,32 @@ int main(int argc, char* argv[])
 	
 	char *wakeTimeStr = malloc(20);
 
+	//phidgetInit(); 
 
-	createInterfaceKit();
-    createLCDHandle();
 	
-	/******************************************************************************************/
+	IFK = createInterfaceKit();
+   	LCD = createLCDHandle();
 	
-	setupHandlers();	// Set up handlers for the Interface Kit & TextLCD
+	
+	
+	
+	setupHandlers(IFK,LCD);	// Set up handlers for the Interface Kit & TextLCD
 
-	openPhidgets();
+	openPhidgets(IFK,LCD);
 
 	//get the program to wait 10 seconds for an TextLCD device to be attached
-    if( checkLCD() == -1 ){
-        return -1;
-    }
+    	if( checkLCD(LCD, IFK) == -1 ){
+        	return -1;
+    	}
 	
 	//display_LCD_properties(LCD);	//Display the properties of the attached Text LCD device
 	
 	//Set the LCD startup screen  
-    setStartupDisplay();
+    	setStartupDisplay(LCD);
 		
 	
 	//wait 5 seconds for attachment of the Interface Kit
-	if( checkIFK() == -1){
+	if( checkIFK(IFK, LCD) == -1){
 		return -1;
 	}
 	//display_IFK_properties(IFK);	//Display the properties of the attached Interface Kit device
@@ -126,7 +133,7 @@ int main(int argc, char* argv[])
 	/******************************************************************************************/
 	
 	time (&prevVoltageTime);			//initialise previous voltage time 
-	prevVoltage = getVoltage();	  //ininitalise voltage		
+	prevVoltage = getVoltage(IFK);	  //ininitalise voltage		
 		
 	spiking = 1;
 	spikeCount = 0;
@@ -134,7 +141,7 @@ int main(int argc, char* argv[])
 	{
 		sleep(10);
 		time (&voltageTime);
-		voltage = getVoltage(); 
+		voltage = getVoltage(IFK); 
 		spiking = testVoltageSpike(&prevVoltage, &prevVoltageTime, &voltage, &voltageTime);   
 		
 		if ( spiking ) 
@@ -142,7 +149,7 @@ int main(int argc, char* argv[])
 			
 		if ( spikeCount++ > SPIKELIMIT ) 
 		{
-			spikeError(spikeCount);
+			spikeError(spikeCount, LCD, IFK);
 
 			
 			return 1;
@@ -152,19 +159,19 @@ int main(int argc, char* argv[])
     while(1){
 
 		time (&voltageTime);
-		//Voltage = getVoltage(IFK);			 
+		voltage = getVoltage(IFK);			 
 		spiking = testVoltageSpike(&prevVoltage, &prevVoltageTime, &voltage, &voltageTime);
 		
 
 		
-		ampsDUT = getDUTAmps();
-		amps = getAmps();
+		ampsDUT = getDUTAmps(IFK);
+		amps = getAmps(IFK);
 
         updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName);
         updateSnapshotfile (SNAP_LOG, voltage, amps, state, spiking);
 
         //update state
-        if(voltage < 1200){
+        if(voltage < 1000){
             state = SLEEP_STATE;
         }
         else{
@@ -174,15 +181,15 @@ int main(int argc, char* argv[])
 
 
 		getTimeString (0, wakeTimeStr);
-		updateDisplay(voltage,amps, wakeTimeStr, getStateDesc(newState));
+		updateDisplay(voltage,amps, wakeTimeStr, getStateDesc(newState), LCD);
 	
 		// Do what the state demands		
 		syslog ( LOG_DEBUG, "Begin main while loop: State is %s", getStateDesc(newState) ); 
-
+		
 
        	//get current time
        	time ( &rawTime );
-	   	timeInfo = localtime ( &rawTime );
+	timeInfo = localtime ( &rawTime );
        	sleepTime = getSleepTime(mode);
 
 	   
@@ -315,10 +322,12 @@ char* getProgName(char* path)
  
 int getSleepTime(char* mode)
 {
-    if(!strncmp(mode,GREEDY_STR,min(strlen(mode),strlen(GREEDY_STR)))){
+
+    /*if(!strncmp(mode,GREEDY_STR,min(strlen(mode),strlen(GREEDY_STR)))){
         return GREEDY_SLEEP;
     } else if(!strncmp(mode,MODERATE_STR,min(strlen(mode),strlen(MODERATE_STR)))){
         return MODERATE_SLEEP;
-    }
+    }*/
+    
     return CONSERVATIVE_SLEEP;
 }

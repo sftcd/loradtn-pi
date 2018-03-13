@@ -8,8 +8,6 @@
 #define IFKINDEX 0
 #define BUFFER_SIZE 21
 
-CPhidgetTextLCDHandle LCD;
-CPhidgetInterfaceKitHandle IFK;
 
 
 char topBuffer [BUFFER_SIZE];
@@ -66,7 +64,7 @@ void display_LCD_properties(CPhidgetTextLCDHandle phid)
 	return;
 }
 
-int getVoltage()
+int getVoltage(CPhidgetInterfaceKitHandle IFK)
 {
 	float correctedValue = 0, totalValue = 0;
 	int currentValue = 0, i = 0;
@@ -98,7 +96,7 @@ int getVoltage()
 	return totalValue / 5;
 }
 
-int getAmps()
+int getAmps(CPhidgetInterfaceKitHandle IFK)
 {
 	float correctedValue;
 	int value;
@@ -120,7 +118,7 @@ int getAmps()
 	return correctedValue * -1;							 // invert so + is charging and - is amp draw
 }
 
-int getDUTAmps()
+int getDUTAmps(CPhidgetInterfaceKitHandle IFK)
 {
 	float correctedValue;
 	int value;
@@ -178,29 +176,73 @@ int testVoltageSpike(int *prevVoltage, time_t *prevVoltageTime, int *voltage, ti
 	}
 }
 
-void createInterfaceKit()
+int phidgetInit()
 {
 	CPhidgetInterfaceKitHandle IFK = IFKINDEX;
 	CPhidgetInterfaceKit_create(&IFK);
-}
-
-void createLCDHandle(){
 	CPhidgetTextLCDHandle LCD = LCDINDEX;
 	CPhidgetTextLCD_create (&LCD);
+	setHandlers(IFK, LCD);
+	CPhidget_open((CPhidgetHandle)IFK, -1);
+	CPhidget_open((CPhidgetHandle)LCD, -1);
+	syslog ( LOG_DEBUG, "Waiting %d seconds for LCD to be attached...", LCD_WAIT_TIME/1000 );	
+	int err;
+	if( (err = CPhidget_waitForAttachment((CPhidgetHandle)LCD, LCD_WAIT_TIME)) != EPHIDGET_OK )
+	{
+		const char *errStr;
+		CPhidget_getErrorDescription(err, &errStr);
+		syslog ( LOG_ERR, "Error waiting for LCD attachment: %d %s", err, errStr ); 
+		
+		closeCPhidget((CPhidgetHandle)IFK);
+		closeCPhidget((CPhidgetHandle)LCD);
+		return -1;
+	}
+	
+	snprintf (topBuffer, BUFFER_SIZE, "Welcome to loradtn");
+	snprintf (bottomBuffer, BUFFER_SIZE, "Loading...");
+
+	CPhidgetTextLCD_setDisplayString (LCD, 0, topBuffer); 
+	CPhidgetTextLCD_setDisplayString (LCD, 1, bottomBuffer);	
+
+	syslog ( LOG_DEBUG, "Waiting %d seconds for IFK to be attached...", IFK_WAIT_TIME/1000 );
+	if( (err = CPhidget_waitForAttachment((CPhidgetHandle)IFK, IFK_WAIT_TIME)) != EPHIDGET_OK )
+	{
+		const char *errStr;
+		CPhidget_getErrorDescription( err, &errStr );
+		syslog ( LOG_ERR, "Error waiting for IFK attachment: %d %s", err, errStr );		   
+
+		closeCPhidget((CPhidgetHandle)IFK);
+		closeCPhidget((CPhidgetHandle)LCD);
+		return -1;
+	}
+	return 0;
 }
 
-void setupHandlers()
+CPhidgetInterfaceKitHandle createInterfaceKit()
+{
+	CPhidgetInterfaceKitHandle IFK = IFKINDEX;
+	CPhidgetInterfaceKit_create(&IFK);
+	return IFK;
+}
+
+CPhidgetTextLCDHandle createLCDHandle(){
+	CPhidgetTextLCDHandle LCD = LCDINDEX;
+	CPhidgetTextLCD_create (&LCD);
+	return LCD;
+}
+
+void setupHandlers(CPhidgetInterfaceKitHandle IFK,CPhidgetTextLCDHandle LCD)
 {
 	setHandlers(IFK, LCD);
 }
 
-void openPhidgets()
+void openPhidgets(CPhidgetInterfaceKitHandle IFK,CPhidgetTextLCDHandle LCD)
 {
 	CPhidget_open((CPhidgetHandle)IFK, -1);
 	CPhidget_open((CPhidgetHandle)LCD, -1);
 }
 
-int checkLCD()
+int checkLCD(CPhidgetTextLCDHandle LCD, CPhidgetInterfaceKitHandle IFK)
 {
 	syslog ( LOG_DEBUG, "Waiting %d seconds for LCD to be attached...", LCD_WAIT_TIME/1000 );	
 	int err;
@@ -217,7 +259,7 @@ int checkLCD()
 	return err;
 }		
 
-void setStartupDisplay() 
+void setStartupDisplay(CPhidgetTextLCDHandle LCD) 
 {
 	snprintf (topBuffer, BUFFER_SIZE, "Welcome to loradtn");
 	snprintf (bottomBuffer, BUFFER_SIZE, "Loading...");
@@ -226,7 +268,7 @@ void setStartupDisplay()
 	CPhidgetTextLCD_setDisplayString (LCD, 1, bottomBuffer);	
 }		 
 
-int checkIFK() 
+int checkIFK(CPhidgetInterfaceKitHandle IFK, CPhidgetTextLCDHandle LCD) 
 {
 	syslog ( LOG_DEBUG, "Waiting %d seconds for IFK to be attached...", IFK_WAIT_TIME/1000 );
 	int err;
@@ -243,7 +285,7 @@ int checkIFK()
 	return err;
 }
 
-void spikeError(int spikeCount) 
+void spikeError(int spikeCount, CPhidgetTextLCDHandle LCD, CPhidgetInterfaceKitHandle IFK) 
 {
 	syslog ( LOG_ERR, "Error initial voltage spike continuing after %d tests, closing program", spikeCount );
 						   
@@ -257,13 +299,15 @@ void spikeError(int spikeCount)
 	closeCPhidget((CPhidgetHandle)LCD); 
 }
 
-void updateDisplay(int voltage, int amps, char *wakeTimeStr, char *stateDescription) 
-{
+int updateDisplay(int voltage, int amps, char *wakeTimeStr, char *stateDescription, CPhidgetTextLCDHandle LCD) 
+{ 
 	snprintf (topBuffer, BUFFER_SIZE, "V:%4d A:%-5d %s", voltage, amps,wakeTimeStr);
 	snprintf (bottomBuffer, BUFFER_SIZE, "%-s", stateDescription);
 
 	CPhidgetTextLCD_setDisplayString (LCD, 0, topBuffer);
 	CPhidgetTextLCD_setDisplayString (LCD, 1, bottomBuffer);
+
+	return 0;
 }
 		
 

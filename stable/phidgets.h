@@ -57,9 +57,9 @@ void display_generic_properties(CPhidgetHandle phid);
 void display_IFK_properties(CPhidgetInterfaceKitHandle phid); 
 void display_LCD_properties(CPhidgetTextLCDHandle phid);
 
-int getVoltage();
-int getAmps();
-int getDUTAmps();
+int getVoltage(CPhidgetInterfaceKitHandle IFK);
+int getAmps(CPhidgetInterfaceKitHandle IFK);
+int getDUTAmps(CPhidgetInterfaceKitHandle IFK);
 
 
 void closeCPhidget(CPhidgetHandle handle);
@@ -68,17 +68,18 @@ int testVoltageSpike(int *prevVoltage,
 	int *voltage,
 	time_t *voltageTime);
 
-void createInterfaceKit();
-void createLCDHandle();
-void setupHandlers();
+CPhidgetInterfaceKitHandle createInterfaceKit();
+CPhidgetTextLCDHandle createLCDHandle();
+void setupHandlers(CPhidgetInterfaceKitHandle IFK,CPhidgetTextLCDHandle LCD);
 
-void openPhidgets();
-int checkLCD();
-void setStartupDisplay();
-int checkIFK();
-void spikeError(int spikeCount);
+void openPhidgets(CPhidgetInterfaceKitHandle IFK,CPhidgetTextLCDHandle LCD);
+int checkLCD(CPhidgetTextLCDHandle LCD, CPhidgetInterfaceKitHandle IFK);
+void setStartupDisplay(CPhidgetTextLCDHandle LCD);
+int checkIFK(CPhidgetInterfaceKitHandle IFK, CPhidgetTextLCDHandle LCD);
+int phidgetInit();
+void spikeError(int spikeCount, CPhidgetTextLCDHandle LCD, CPhidgetInterfaceKitHandle IFK);
 
-void updateDisplay(int voltage, int amps, char *wakeTimeStr, char *stateDescription);
+int updateDisplay(int voltage, int amps, char *wakeTimeStr, char *stateDescription, CPhidgetTextLCDHandle LCD);
 
 
 

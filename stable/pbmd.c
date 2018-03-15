@@ -26,6 +26,8 @@
 #define MODERATE_SLEEP 18
 #define CONSERVATIVE_SLEEP 16
 
+#define SLEEP_DURATION 60
+
 CPhidgetTextLCDHandle LCD;
 CPhidgetInterfaceKitHandle IFK;
  
@@ -56,7 +58,7 @@ char* getStateDesc(int state);
 
 
  
-void init(int argc, char* argv[])
+void init()
 {
     logFile = fopen( BATTERY_LOG, "a" );
     clearSnapFile(SNAP_LOG);
@@ -70,10 +72,10 @@ int main(int argc, char* argv[])
     //parse args, init
     char *progName = getProgName(argv[0]);
 	
-    sleepDuration = atoi(argv[1]);
-    mode = argv[2];
+    //sleepDuration = atoi(argv[1]);
+    mode = argv[1];
     
-    init(argc, argv);
+    init();
 
     //log
     fputs("\nYYYY-M-MDD,HH:MM:SS,mVolts,mAmps,State,Spike\n",logFile);
@@ -137,8 +139,7 @@ int main(int argc, char* argv[])
 		
 	spiking = 1;
 	spikeCount = 0;
-	while ( spiking ) 
-	{
+	while ( spiking ) {
 		sleep(10);
 		time (&voltageTime);
 		voltage = getVoltage(IFK); 
@@ -147,8 +148,7 @@ int main(int argc, char* argv[])
 		if ( spiking ) 
 			syslog ( LOG_ERR, "Initial voltage spike occured - acquiring new voltage to retest" );	
 			
-		if ( spikeCount++ > SPIKELIMIT ) 
-		{
+		if ( spikeCount++ > SPIKELIMIT ) {
 			spikeError(spikeCount, LCD, IFK);
 
 			
@@ -181,11 +181,11 @@ int main(int argc, char* argv[])
 
 
 		getTimeString (0, wakeTimeStr);
-		updateDisplay(voltage,amps, wakeTimeStr, getStateDesc(newState), LCD);
+		updateDisplay(voltage,amps, wakeTimeStr, getStateDesc(newState), LCD, mode);
 	
 		// Do what the state demands		
 		syslog ( LOG_DEBUG, "Begin main while loop: State is %s", getStateDesc(newState) ); 
-		
+		syslog ( LOG_DEBUG, "Mode is %s", mode );
 
        	//get current time
        	time ( &rawTime );
@@ -196,19 +196,34 @@ int main(int argc, char* argv[])
 
        	//act based on state
        	if(state == SLEEP_STATE){
-            if(timeInfo->tm_hour >= sleepTime){
+            if(timeInfo->tm_hour >= sleepTime)
+	    {
                 // sleep script
             } else {
-				if(!strncmp(mode,GREEDY_STR,min(strlen(mode),strlen(GREEDY_STR)))){
-                    //sleep short amount of time
-				} else if(!strncmp(mode,MODERATE_STR,min(strlen(mode),strlen(MODERATE_STR)))){
-                    //sleep moderate time
+				if(strncmp(mode,GREEDY_STR,min(strlen(mode),strlen(GREEDY_STR)))==0){
+                    //sleepshort.sh
+				} else if(strncmp(mode,MODERATE_STR,min(strlen(mode),strlen(MODERATE_STR)))==0){
+                    //sleepmoderate.sh
                 } else {
-                    //sleep longer
+                    //sleeplong.sh
                 }
             }
             return 0;
         }
+	else if(state == LOW_POWER){
+	    //don't power up kerlink
+
+		
+	}
+	else if(state == OVERRIDE){
+		//run for 30(?) minutes then sleep script
+
+	
+	}
+	else{
+	
+	}
+
 
         //get voltage, amps, amps DUT
 
@@ -217,7 +232,7 @@ int main(int argc, char* argv[])
         updateSnapshotfile (SNAP_LOG, voltage, amps, state, spiking);
         
         //sleepn
-        sleep(sleepDuration);
+        sleep(SLEEP_DURATION);
     }
     
 }
@@ -323,11 +338,11 @@ char* getProgName(char* path)
 int getSleepTime(char* mode)
 {
 
-    /*if(!strncmp(mode,GREEDY_STR,min(strlen(mode),strlen(GREEDY_STR)))){
+    if(strncmp(mode,GREEDY_STR,min(strlen(mode),strlen(GREEDY_STR)))==0){
         return GREEDY_SLEEP;
-    } else if(!strncmp(mode,MODERATE_STR,min(strlen(mode),strlen(MODERATE_STR)))){
+    } else if(!strncmp(mode,MODERATE_STR,min(strlen(mode),strlen(MODERATE_STR)))==0){
         return MODERATE_SLEEP;
-    }*/
+    }
     
     return CONSERVATIVE_SLEEP;
 }

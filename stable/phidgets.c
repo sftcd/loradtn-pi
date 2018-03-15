@@ -299,10 +299,10 @@ void spikeError(int spikeCount, CPhidgetTextLCDHandle LCD, CPhidgetInterfaceKitH
 	closeCPhidget((CPhidgetHandle)LCD); 
 }
 
-int updateDisplay(int voltage, int amps, char *wakeTimeStr, char *stateDescription, CPhidgetTextLCDHandle LCD) 
+int updateDisplay(int voltage, int amps, char *wakeTimeStr, char *stateDescription, CPhidgetTextLCDHandle LCD, char* mode) 
 { 
 	snprintf (topBuffer, BUFFER_SIZE, "V:%4d A:%-5d %s", voltage, amps,wakeTimeStr);
-	snprintf (bottomBuffer, BUFFER_SIZE, "%-s", stateDescription);
+	snprintf (bottomBuffer, BUFFER_SIZE, "%-s , %s", stateDescription, mode);
 
 	CPhidgetTextLCD_setDisplayString (LCD, 0, topBuffer);
 	CPhidgetTextLCD_setDisplayString (LCD, 1, bottomBuffer);

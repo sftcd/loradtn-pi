@@ -79,7 +79,7 @@ int checkIFK(CPhidgetInterfaceKitHandle IFK, CPhidgetTextLCDHandle LCD);
 int phidgetInit();
 void spikeError(int spikeCount, CPhidgetTextLCDHandle LCD, CPhidgetInterfaceKitHandle IFK);
 
-int updateDisplay(int voltage, int amps, char *wakeTimeStr, char *stateDescription, CPhidgetTextLCDHandle LCD);
+int updateDisplay(int voltage, int amps, char *wakeTimeStr, char *stateDescription, CPhidgetTextLCDHandle LCD, char* mode);
 
 
 

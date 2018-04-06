@@ -29,10 +29,6 @@ int IFK_SensorChangeHandler(CPhidgetInterfaceKitHandle IFK, void *userptr, int I
     //todo: this function doesn't appear to do anything
 
     float fValue;
-    int oValue, rValue;
-
-    rValue = 0;
-    oValue = Value;
 
     if (Index == 0)
     {

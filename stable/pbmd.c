@@ -25,6 +25,9 @@
 #define GREEDY_STR "GREEDY"
 #define MODERATE_STR "MODERATE"
 
+#define SIMULATE_STR "SIM"
+#define NOSIM_STR "NOSIM"
+
 // Duration of sleep, eg. Greedy sleep = 10 minutes
 #define GREEDY_SLEEP 10
 #define MODERATE_SLEEP 30
@@ -35,6 +38,10 @@
 #define SLEEP_DURATION 60
 
 #define SIMULATE 0
+#define NO_SIMULATE 1
+
+#define MAXIMIZE_UPTIME 0
+#define RELATIVE_SLEEP 1
 
 CPhidgetTextLCDHandle LCD;
 CPhidgetInterfaceKitHandle IFK;
@@ -71,6 +78,7 @@ char *createShutdownString(int timeToSleep);
 int getSleepDuration(char *mode);
 void kerOn();
 void kerOff();
+int getVoltMode(char* mode);
 
 void init()
 {
@@ -84,8 +92,27 @@ int main(int argc, char *argv[])
 	char *progName = getProgName(argv[0]);
 
 	//sleepDuration = atoi(argv[1]);
+	
 	mode = argv[1];
-	voltMode = strtol(argv[2], NULL, 10);
+	voltMode = getVoltMode(argv[2]);
+	
+	int sleepLength = -1;
+	int uptime = -1;
+	
+	system("./utilities.sh clear_startup_time");
+	system("./utilities.sh clear_shutdown_time");
+	
+	if(argc == 5)
+	{
+		sleepLength = strtol(argv[3], NULL, 10);
+		uptime = strtol(argv[4], NULL, 10);
+
+		char *shutdownTime = createShutdownString(uptime * SECONDS_TO_MINUTES);
+		char *startupTime = createStartupString((uptime + sleepLength) * SECONDS_TO_MINUTES);
+
+		system(shutdownTime); // set shutdown and startup times
+		system(startupTime);
+	}
 	init();
 
 	//log
@@ -170,8 +197,12 @@ int main(int argc, char *argv[])
 		voltage = 1800;
 	}
 
+		
 	while (1)
 	{
+		
+
+	
 		if (voltMode != SIMULATE)
 		{
 			time(&voltageTime);
@@ -259,7 +290,7 @@ int main(int argc, char *argv[])
 			{
 				time(&rawTime);
 				currentTime = time(NULL);
-				if ((currentTime + (5 * SECONDS_TO_MINUTES)) > time_wanted)
+				if ((currentTime + (3 * SECONDS_TO_MINUTES)) > time_wanted)
 				{
 					kerOff();
 				}
@@ -293,7 +324,7 @@ int main(int argc, char *argv[])
 		}
 		else
 		{
-
+			
 			//get voltage, amps, amps DUT
 			if (voltMode != SIMULATE)
 			{
@@ -312,6 +343,8 @@ int main(int argc, char *argv[])
 				ampsDUT = simulateDUTAmps();
 				spiking = 0;
 			}
+
+			
 
 			//log
 			updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName);
@@ -593,4 +626,19 @@ void kerOff()
 	{
 		syslog(LOG_NOTICE, "Ran ker-off. ret: %d", ret);
 	}
+}
+
+int getVoltMode(char* mode)
+{
+	int voltMode = NO_SIMULATE;
+	if (strncmp(mode, SIMULATE_STR, min(strlen(mode), strlen(SIMULATE_STR))) == 0)
+	{
+		voltMode = SIMULATE;
+	}
+	else 
+	{
+		voltMode = NO_SIMULATE;
+	}
+	return voltMode;
+
 }

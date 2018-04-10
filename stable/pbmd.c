@@ -28,6 +28,8 @@
 #define SIMULATE_STR "SIM"
 #define NOSIM_STR "NOSIM"
 
+#define DEPLETE "DEP"
+
 // Duration of sleep, eg. Greedy sleep = 10 minutes
 #define GREEDY_SLEEP 10
 #define MODERATE_SLEEP 30
@@ -48,7 +50,7 @@ CPhidgetInterfaceKitHandle IFK;
 
 char *batteryLogLocation, *snapshotLocation, bootflag, *mode; // = "/var/log/battery.log";
 
-int sleepDuration, sleepTime, wakeTime, voltMode;
+int sleepDuration, sleepTime, wakeTime, voltMode, batteryDeplete;
 
 FILE *logFile;
 
@@ -62,8 +64,7 @@ int updateLogfile(FILE *logfile,
 				  int ampsDUT,
 				  int state,
 				  int spiking,
-				  const char *progName,
-				  char *mode);
+				  const char *progName);
 int updateSnapshotfile(const char *snapFileName, int voltage, int amps, int state, int spiking, char *mode);
 void getTimeString(int wakeTimeSec, char *wakeTimeStr);
 int clearSnapFile(char *snapFileName);
@@ -91,7 +92,7 @@ int main(int argc, char *argv[])
 {
 	//parse args, init
 	char *progName = getProgName(argv[0]);
-
+	batteryDeplete = -1;
 	//sleepDuration = atoi(argv[1]);
 	
 	mode = argv[1];
@@ -103,6 +104,13 @@ int main(int argc, char *argv[])
 	system("/home/pi/code/loradtn-pi/stable/utilities.sh clear_startup_time");
 	system("/home/pi/code/loradtn-pi/stable/utilities.sh clear_shutdown_time");
 	
+	if(argc == 4) 
+	{
+		if(strncmp(argv[3], DEPLETE, min(strlen(argv[3]), strlen(DEPLETE))) == 0)
+		{
+			batteryDeplete = 1;
+		}
+	}
 	if(argc == 5)
 	{
 		sleepLength = strtol(argv[3], NULL, 10);
@@ -140,25 +148,23 @@ int main(int argc, char *argv[])
 
 	//phidgetInit();
 	//printf("%d\n", voltMode);
+
+	IFK = createInterfaceKit();
+	LCD = createLCDHandle();
+	setupHandlers(IFK, LCD); // Set up handlers for the Interface Kit & TextLCD
+	openPhidgets(IFK, LCD);
+	//get the program to wait 10 seconds for an TextLCD device to be attached
+	if (checkLCD(LCD, IFK) == -1)
+	{
+		return -1;
+	}
+	setStartupDisplay(LCD);
+	
+
 	if (voltMode != SIMULATE)
 	{
-		IFK = createInterfaceKit();
-		LCD = createLCDHandle();
-
-		setupHandlers(IFK, LCD); // Set up handlers for the Interface Kit & TextLCD
-
-		openPhidgets(IFK, LCD);
-
-		//get the program to wait 10 seconds for an TextLCD device to be attached
-		if (checkLCD(LCD, IFK) == -1)
-		{
-			return -1;
-		}
-
-		//display_LCD_properties(LCD);	//Display the properties of the attached Text LCD device
-
-		//Set the LCD startup screen
-		setStartupDisplay(LCD);
+		
+		
 
 		//wait 5 seconds for attachment of the Interface Kit
 		if (checkIFK(IFK, LCD) == -1)
@@ -212,24 +218,26 @@ int main(int argc, char *argv[])
 
 			ampsDUT = getDUTAmps(IFK);
 			amps = getAmps(IFK);
+			
 		}
 		else
 		{
 			voltage = simulateVoltage(timeInfo, voltage);
+			syslog(LOG_DEBUG, "voltage is %d", voltage);
 			amps = simulateAmps();
 			ampsDUT = simulateDUTAmps();
 			spiking = 0;
 		}
 
-		updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName, mode);
+		updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName);
 		updateSnapshotfile(SNAP_LOG, voltage, amps, state, spiking, mode);
 
 		//update state
-		if (voltage < 1000)
+		if (voltage < 1060)
 		{
 			state = SLEEP_STATE;
 		}
-		else if (voltage < 1100)
+		else if (voltage < 1170)
 		{
 			state = LOW_POWER;
 		}
@@ -237,12 +245,11 @@ int main(int argc, char *argv[])
 		{
 			state = UP_STATE;
 		}
+	
+		//state = UP_STATE;
 
 		getTimeString(0, wakeTimeStr);
-		if (voltMode != SIMULATE)
-		{
-			updateDisplay(voltage, amps, wakeTimeStr, getStateDesc(newState), LCD, mode);
-		}
+		updateDisplay(voltage, amps, wakeTimeStr, getStateDesc(newState), LCD, mode);
 		// Do what the state demands
 		syslog(LOG_DEBUG, "Begin main while loop: State is %s", getStateDesc(newState));
 		syslog(LOG_DEBUG, "Mode is %s", mode);
@@ -314,7 +321,7 @@ int main(int argc, char *argv[])
 				}
 
 				//log
-				updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName, mode);
+				updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName);
 				updateSnapshotfile(SNAP_LOG, voltage, amps, state, spiking, mode);
 
 				//sleepn
@@ -326,7 +333,7 @@ int main(int argc, char *argv[])
 		else
 		{
 			
-			//get voltage, amps, amps DUT
+			/*//get voltage, amps, amps DUT
 			if (voltMode != SIMULATE)
 			{
 				kerOn();
@@ -348,8 +355,8 @@ int main(int argc, char *argv[])
 			
 
 			//log
-			updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName, mode);
-			updateSnapshotfile(SNAP_LOG, voltage, amps, state, spiking, mode);
+			updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName);
+			updateSnapshotfile(SNAP_LOG, voltage, amps, state, spiking, mode);*/
 
 			//sleepn
 			sleep(SLEEP_DURATION);
@@ -434,7 +441,7 @@ int updateSnapshotfile(const char *snapFileName, int voltage, int amps, int stat
 	}
 }
 
-int updateLogfile(FILE *logfile, int voltage, int amps, int dutAmps, int state, int spiking, const char *progName, char *mode)
+int updateLogfile(FILE *logfile, int voltage, int amps, int dutAmps, int state, int spiking, const char *progName)
 {
 	time_t rawTime, time_wanted;
 	struct tm *timeInfo;
@@ -461,8 +468,8 @@ int updateLogfile(FILE *logfile, int voltage, int amps, int dutAmps, int state, 
 	}
 	else
 	{
-		snprintf(logEntry, 200, "%s %s %s %d %d %s %s%s DUT: %d\n",
-				 timeStr, hostName, progName, voltage, amps, getStateDesc(state), spikingStr, mode, dutAmps);
+		snprintf(logEntry, 200, "%s %s %s %d %d %s %s DUT: %d\n",
+				 timeStr, hostName, progName, voltage, amps, getStateDesc(state), spikingStr, dutAmps);
 		fputs(logEntry, logfile);
 		fflush(logfile);
 		return 0;
@@ -496,6 +503,12 @@ int getSleepTime(char *mode)
 int simulateVoltage(struct tm *time, int currentV)
 {
 	int hour = time->tm_hour;
+	if( batteryDeplete == 1)
+	{
+		return currentV - 500;
+	}
+
+
 	if (hour > 20 || hour < 8)
 	{
 		if (currentV > 800)
@@ -600,6 +613,12 @@ int getSleepDuration(char *mode)
 	{
 		sleepDuration = CONSERVATIVE_SLEEP * SECONDS_TO_MINUTES;
 	}
+
+	if( batteryDeplete == 1) 
+	{
+		sleepDuration = sleepDuration/10;
+	}
+
 	return sleepDuration;
 }
 

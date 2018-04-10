@@ -1,0 +1,22 @@
+- Runs on startup
+- Self shutdown
+- Relative sleep
+- Different sleep patterns eg. Greedy 
+- Simulated voltage
+
+-- Run first script manually that starts at high voltage and
+-- depletes to low voltage (in eg. 2 minutes) such that pi decides to sleep -> show display before sleep
+
+-- After reboot, demonstrate relative sleep (eg. 2 min on 2 min off)
+
+-- Enable startup script after second reboot ?
+
+-- ? How to demonstrate low power state ? 
+
+-- Show battery log, snapshot file - display time is in local time, log time is UTC
+
+-- Cron job for pushing log file 
+
+
+
+

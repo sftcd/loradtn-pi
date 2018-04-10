@@ -23,9 +23,9 @@ DAEMON=/home/pi/code/loradtn-pi/stable/$NAME
  
  
 #
-DAEMON_ARGS="GREEDY SIM"
+DAEMON_ARGS="MODERATE SIM"
 PIDFILE=/var/run/$NAME.pid
-SCRIPTNAME=/etc/init.d/$NAME
+SCRIPTNAME=/etc/init.d/newpbm
  
 # Exit if the package is not installed
 [ -x "$DAEMON" ] || exit 0

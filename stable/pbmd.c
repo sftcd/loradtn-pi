@@ -62,8 +62,9 @@ int updateLogfile(FILE *logfile,
 				  int ampsDUT,
 				  int state,
 				  int spiking,
-				  const char *progName);
-int updateSnapshotfile(const char *snapFileName, int voltage, int amps, int state, int spiking);
+				  const char *progName,
+				  char *mode);
+int updateSnapshotfile(const char *snapFileName, int voltage, int amps, int state, int spiking, char *mode);
 void getTimeString(int wakeTimeSec, char *wakeTimeStr);
 int clearSnapFile(char *snapFileName);
 char *getProgName(char *path);
@@ -116,7 +117,7 @@ int main(int argc, char *argv[])
 	init();
 
 	//log
-	fputs("\nYYYY-M-MDD,HH:MM:SS,mVolts,mAmps,State,Spike\n", logFile);
+	fputs("\nYYYY-M-MDD,HH:MM:SS,mVolts,mAmps,State,Spike, Mode\n", logFile);
 
 	int voltage = 0;
 	int amps = 0;
@@ -220,8 +221,8 @@ int main(int argc, char *argv[])
 			spiking = 0;
 		}
 
-		updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName);
-		updateSnapshotfile(SNAP_LOG, voltage, amps, state, spiking);
+		updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName, mode);
+		updateSnapshotfile(SNAP_LOG, voltage, amps, state, spiking, mode);
 
 		//update state
 		if (voltage < 1000)
@@ -262,7 +263,7 @@ int main(int argc, char *argv[])
 
 			kerOff();
 
-			sleep(SLEEP_DURATION / 2);
+			//sleep(SLEEP_DURATION / 2);
 			system("./utilities.sh do_shutdown");
 			return 0;
 		}
@@ -313,8 +314,8 @@ int main(int argc, char *argv[])
 				}
 
 				//log
-				updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName);
-				updateSnapshotfile(SNAP_LOG, voltage, amps, state, spiking);
+				updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName, mode);
+				updateSnapshotfile(SNAP_LOG, voltage, amps, state, spiking, mode);
 
 				//sleepn
 				sleep(SLEEP_DURATION);
@@ -347,8 +348,8 @@ int main(int argc, char *argv[])
 			
 
 			//log
-			updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName);
-			updateSnapshotfile(SNAP_LOG, voltage, amps, state, spiking);
+			updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName, mode);
+			updateSnapshotfile(SNAP_LOG, voltage, amps, state, spiking, mode);
 
 			//sleepn
 			sleep(SLEEP_DURATION);
@@ -397,7 +398,8 @@ char *getStateDesc(int state)
 	}
 }
 
-int updateSnapshotfile(const char *snapFileName, int voltage, int amps, int state, int spiking)
+
+int updateSnapshotfile(const char *snapFileName, int voltage, int amps, int state, int spiking, char *mode)
 {
 	// Snapshot file is a single line file, overwritten each time with the current and latest values
 	time_t rawtime;
@@ -424,7 +426,7 @@ int updateSnapshotfile(const char *snapFileName, int voltage, int amps, int stat
 	}
 	else
 	{
-		snprintf(snapEntry, 200, "%s %dV%s %dmA %s\n", timeStr, voltage, spikingStr, amps, getStateDesc(state));
+		snprintf(snapEntry, 200, "%s %dV%s %dmA %s %s\n", timeStr, voltage, spikingStr, amps, getStateDesc(state), mode);
 		fputs(snapEntry, snapfile);
 		fflush(snapfile);
 		fclose(snapfile);
@@ -432,7 +434,7 @@ int updateSnapshotfile(const char *snapFileName, int voltage, int amps, int stat
 	}
 }
 
-int updateLogfile(FILE *logfile, int voltage, int amps, int dutAmps, int state, int spiking, const char *progName)
+int updateLogfile(FILE *logfile, int voltage, int amps, int dutAmps, int state, int spiking, const char *progName, char *mode)
 {
 	time_t rawTime, time_wanted;
 	struct tm *timeInfo;
@@ -459,8 +461,8 @@ int updateLogfile(FILE *logfile, int voltage, int amps, int dutAmps, int state, 
 	}
 	else
 	{
-		snprintf(logEntry, 200, "%s %s %s %d %d %s %s DUT: %d\n",
-				 timeStr, hostName, progName, voltage, amps, getStateDesc(state), spikingStr, dutAmps);
+		snprintf(logEntry, 200, "%s %s %s %d %d %s %s%s DUT: %d\n",
+				 timeStr, hostName, progName, voltage, amps, getStateDesc(state), spikingStr, mode, dutAmps);
 		fputs(logEntry, logfile);
 		fflush(logfile);
 		return 0;
@@ -634,10 +636,6 @@ int getVoltMode(char* mode)
 	if (strncmp(mode, SIMULATE_STR, min(strlen(mode), strlen(SIMULATE_STR))) == 0)
 	{
 		voltMode = SIMULATE;
-	}
-	else 
-	{
-		voltMode = NO_SIMULATE;
 	}
 	return voltMode;
 

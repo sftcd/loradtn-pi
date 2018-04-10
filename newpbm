@@ -18,12 +18,12 @@
 # PATH should only include /usr/* if it runs after the mountnfs.sh script
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="new power manager daemon"
-NAME=newpbmd
-DAEMON=/usr/sbin/$NAME
+NAME=pbmd
+DAEMON=/home/pi/code/loradtn-pi/stable/$NAME
  
  
 #
-DAEMON_ARGS="60 1600 1000 GREEDY"
+DAEMON_ARGS="GREEDY SIM"
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
  

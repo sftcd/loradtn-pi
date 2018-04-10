@@ -100,8 +100,8 @@ int main(int argc, char *argv[])
 	int sleepLength = -1;
 	int uptime = -1;
 	
-	system("./utilities.sh clear_startup_time");
-	system("./utilities.sh clear_shutdown_time");
+	system("/home/pi/code/loradtn-pi/stable/utilities.sh clear_startup_time");
+	system("/home/pi/code/loradtn-pi/stable/utilities.sh clear_shutdown_time");
 	
 	if(argc == 5)
 	{
@@ -110,7 +110,8 @@ int main(int argc, char *argv[])
 
 		char *shutdownTime = createShutdownString(uptime * SECONDS_TO_MINUTES);
 		char *startupTime = createStartupString((uptime + sleepLength) * SECONDS_TO_MINUTES);
-
+		
+		
 		system(shutdownTime); // set shutdown and startup times
 		system(startupTime);
 	}
@@ -203,7 +204,6 @@ int main(int argc, char *argv[])
 	{
 		
 
-	
 		if (voltMode != SIMULATE)
 		{
 			time(&voltageTime);
@@ -264,7 +264,7 @@ int main(int argc, char *argv[])
 			kerOff();
 
 			//sleep(SLEEP_DURATION / 2);
-			system("./utilities.sh do_shutdown");
+			system("/home/pi/code/loradtn-pi/stable/utilities.sh do_shutdown");
 			return 0;
 		}
 		else if (state == LOW_POWER)
@@ -548,7 +548,7 @@ char *createStartupString(int timeToSleep)
 	char minuteBuffer[2];
 	sprintf(hourBuffer, "%d", hour);
 	sprintf(minuteBuffer, "%d", minute);
-	char *startupTime = "./utilities.sh set_startup_time ?? ";
+	char *startupTime = "/home/pi/code/loradtn-pi/stable/utilities.sh set_startup_time ?? ";
 	startupTime = concat(startupTime, hourBuffer);
 	startupTime = concat(startupTime, " ");
 	startupTime = concat(startupTime, minuteBuffer);
@@ -576,7 +576,7 @@ char *createShutdownString(int timeToSleep)
 	char minuteBuffer[2];
 	sprintf(hourBuffer, "%d", hour);
 	sprintf(minuteBuffer, "%d", minute);
-	char *startupTime = "./utilities.sh set_startup_time ?? ";
+	char *startupTime = "/home/pi/code/loradtn-pi/stable/utilities.sh set_shutdown_time ?? ";
 	startupTime = concat(startupTime, hourBuffer);
 	startupTime = concat(startupTime, " ");
 	startupTime = concat(startupTime, minuteBuffer);

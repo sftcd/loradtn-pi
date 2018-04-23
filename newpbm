@@ -23,7 +23,7 @@ DAEMON=/home/pi/code/loradtn-pi/stable/$NAME
  
  
 #
-DAEMON_ARGS="MODERATE SIM"
+DAEMON_ARGS="MODERATE NOSIM"
 PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/newpbm
  

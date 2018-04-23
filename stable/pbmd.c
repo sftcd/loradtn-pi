@@ -1,7 +1,12 @@
-/*
-    Handles logging of values - voltmeter, ammeter
-    State machine controller
-*/
+/**
+ * @file pbmd.c
+ * @author Robert Cooney
+ * @date 23 April 2018
+ * @brief State machine + logging for power management daemon
+ *
+ * 
+ */
+
 #define _GNU_SOURCE
 
 #include <stdlib.h>
@@ -32,18 +37,15 @@
 
 // Duration of sleep, eg. Greedy sleep = 10 minutes
 #define GREEDY_SLEEP 10
-#define MODERATE_SLEEP 30
+#define MODERATE_SLEEP 20
 #define CONSERVATIVE_SLEEP 60
 
 #define SECONDS_TO_MINUTES 60
 
-#define SLEEP_DURATION 60
+#define SLEEP_DURATION 30
 
 #define SIMULATE 0
 #define NO_SIMULATE 1
-
-#define MAXIMIZE_UPTIME 0
-#define RELATIVE_SLEEP 1
 
 CPhidgetTextLCDHandle LCD;
 CPhidgetInterfaceKitHandle IFK;
@@ -88,6 +90,15 @@ void init()
 	clearSnapFile(SNAP_LOG);
 }
 
+/**
+ * @brief Handles phidget interactions, state machine, logging
+ *
+ * 
+ * @code
+ * BoxStruct *out = Box_The_Function_Name(param1, param2);
+ * printf("something...\n");
+ * @endcode
+ */
 int main(int argc, char *argv[])
 {
 	//parse args, init
@@ -233,7 +244,7 @@ int main(int argc, char *argv[])
 		updateSnapshotfile(SNAP_LOG, voltage, amps, state, spiking, mode);
 
 		//update state
-		if (voltage < 1060)
+		if (voltage < 1240)
 		{
 			state = SLEEP_STATE;
 		}

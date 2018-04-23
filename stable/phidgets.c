@@ -76,7 +76,7 @@ int getVoltage(CPhidgetInterfaceKitHandle IFK)
 	// Calibration
 	// when the phidget is not connected to anything it returns a voltage of -5V. 
 	// this must be adjusted to zero by adding 5V
-	currentValue += 5;
+	//currentValue += 5;
 
 	// get an average over 5 readings to allow for sensor noise. 1 per second for 5 seconds
 	for (i = 0; i < 5 ; i++)
@@ -86,11 +86,12 @@ int getVoltage(CPhidgetInterfaceKitHandle IFK)
 		// To adjust a formula, substitute (SensorValue) with (RawSensorValue / 4.095)
 		//
 		// The Formula to translate SensorValue into Voltage is:
-		// Voltage (in volts) = (SensorValue x 0.06) - 30		
+		// Voltage (in volts) = (SensorValue x 0.06) - 30	
+		CPhidgetInterfaceKit_getSensorRawValue(IFK, VOLTINDEX, &currentValue); 	
 		correctedValue = currentValue;
 		correctedValue = (((correctedValue/4.095)*0.06)-30)*100;	// multiply raw value and up by 100 to keep
-		totalValue += correctedValue;
-		sleep (1);
+		totalValue += (correctedValue - 25);
+		sleep (2);
 	}
 			
 	return totalValue / 5;

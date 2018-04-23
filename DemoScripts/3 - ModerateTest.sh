@@ -12,7 +12,7 @@ update-rc.d newpbm defaults
 DESC="new power manager daemon"
 NAME=pbmd
 DAEMON=stable/./$NAME
-# Greedy sleep mode (ie. short sleep time when low battery)
+# Moderate sleep mode (ie. short sleep time when low battery)
 # Simulated battery voltage with depletion
 DAEMON_ARGS="MODERATE SIM DEP"
 #PIDFILE=/var/run/$NAME.pid

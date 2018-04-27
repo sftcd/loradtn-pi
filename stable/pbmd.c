@@ -258,6 +258,7 @@ int main(int argc, char *argv[])
 		}
 	
 		//state = UP_STATE;
+		
 
 		getTimeString(0, wakeTimeStr);
 		updateDisplay(voltage, amps, wakeTimeStr, getStateDesc(newState), LCD, mode);
@@ -278,9 +279,10 @@ int main(int argc, char *argv[])
 			char *startupTime = createStartupString(sleepDuration);
 			printf("%s\n", startupTime);
 			system(startupTime);
-
+			
 			kerOff();
-
+			updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName);
+			updateSnapshotfile(SNAP_LOG, voltage, amps, state, spiking, mode);
 			//sleep(SLEEP_DURATION / 2);
 			system("/home/pi/code/loradtn-pi/stable/utilities.sh do_shutdown");
 			return 0;
@@ -288,10 +290,14 @@ int main(int argc, char *argv[])
 		else if (state == LOW_POWER)
 		{
 			kerOff();
+			updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName);
+			updateSnapshotfile(SNAP_LOG, voltage, amps, state, spiking, mode);
 		}
 		else if (state == OVERRIDE)
 		{
 
+			updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName);
+			updateSnapshotfile(SNAP_LOG, voltage, amps, state, spiking, mode);
 			//run for 30(?) minutes then sleep script
 			kerOn();
 			sleepDuration = getSleepDuration(mode);

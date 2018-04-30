@@ -1,3 +1,11 @@
+/**
+ * @file phidgets.c
+ * @date 30 April 2018
+ * @brief Functions for interacting with phidgets
+ *
+ * 
+ */
+
 #include "phidgets.h"
 
 #ifndef PATH_MAX

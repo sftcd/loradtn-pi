@@ -1,3 +1,11 @@
+/** \mainpage Documentation for LoRa gateway power management program
+ * 
+ *  
+ * <a href="pbmd_8c.html">Main file</a> \n
+ * <a href="handlers_8c.html">Phidget handlers</a>\n
+ * <a href="phidgets_8c.html">Phidget functions</a>
+ */
+
 /**
  * @file pbmd.c
  * @author Robert Cooney
@@ -71,7 +79,6 @@ int updateSnapshotfile(const char *snapFileName, int voltage, int amps, int stat
 void getTimeString(int wakeTimeSec, char *wakeTimeStr);
 int clearSnapFile(char *snapFileName);
 char *getProgName(char *path);
-int getSleepTime(char *mode);
 char *getStateDesc(int state);
 int simulateVoltage(struct tm *time, int currentV);
 int simulateAmps();
@@ -94,10 +101,7 @@ void init()
  * @brief Handles phidget interactions, state machine, logging
  *
  * 
- * @code
- * BoxStruct *out = Box_The_Function_Name(param1, param2);
- * printf("something...\n");
- * @endcode
+ * 
  */
 int main(int argc, char *argv[])
 {
@@ -112,6 +116,9 @@ int main(int argc, char *argv[])
 	int sleepLength = -1;
 	int uptime = -1;
 	
+	/**
+	* Clearing Pi shutdown and startup times
+	*/ 
 	system("/home/pi/code/loradtn-pi/stable/utilities.sh clear_startup_time");
 	system("/home/pi/code/loradtn-pi/stable/utilities.sh clear_shutdown_time");
 	
@@ -162,7 +169,7 @@ int main(int argc, char *argv[])
 
 	IFK = createInterfaceKit();
 	LCD = createLCDHandle();
-	setupHandlers(IFK, LCD); // Set up handlers for the Interface Kit & TextLCD
+	setupHandlers(IFK, LCD); /**< Set up handlers for the Interface Kit & TextLCD */
 	openPhidgets(IFK, LCD);
 	//get the program to wait 10 seconds for an TextLCD device to be attached
 	if (checkLCD(LCD, IFK) == -1)
@@ -220,13 +227,12 @@ int main(int argc, char *argv[])
 	while (1)
 	{
 		
-
+		/** Get simulated voltages if necessary, otherwise get actual values */
 		if (voltMode != SIMULATE)
 		{
 			time(&voltageTime);
 			voltage = getVoltage(IFK);
 			spiking = testVoltageSpike(&prevVoltage, &prevVoltageTime, &voltage, &voltageTime);
-
 			ampsDUT = getDUTAmps(IFK);
 			amps = getAmps(IFK);
 			
@@ -240,8 +246,8 @@ int main(int argc, char *argv[])
 			spiking = 0;
 		}
 
-		updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName);
-		updateSnapshotfile(SNAP_LOG, voltage, amps, state, spiking, mode);
+		//updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName);
+		//updateSnapshotfile(SNAP_LOG, voltage, amps, state, spiking, mode);
 
 		//update state
 		if (voltage < 1240)
@@ -269,7 +275,6 @@ int main(int argc, char *argv[])
 		//get current time
 		time(&rawTime);
 		timeInfo = localtime(&rawTime);
-		//sleepTime = getSleepTime(mode);
 
 		//act based on state
 		int sleepDuration = 0;
@@ -311,6 +316,7 @@ int main(int argc, char *argv[])
 			time_t time_wanted, currentTime;
 			time_wanted = time(NULL) + (30 * SECONDS_TO_MINUTES);
 			currentTime = time(NULL);
+			/** Continue loop until time to shutdown arrives */
 			while (1)
 			{
 				time(&rawTime);
@@ -350,36 +356,18 @@ int main(int argc, char *argv[])
 		else
 		{
 			
-			/*//get voltage, amps, amps DUT
-			if (voltMode != SIMULATE)
-			{
-				kerOn();
-				time(&voltageTime);
-				voltage = getVoltage(IFK);
-				spiking = testVoltageSpike(&prevVoltage, &prevVoltageTime, &voltage, &voltageTime);
 
-				ampsDUT = getDUTAmps(IFK);
-				amps = getAmps(IFK);
-			}
-			else
-			{
-				voltage = simulateVoltage(timeInfo, voltage);
-				amps = simulateAmps();
-				ampsDUT = simulateDUTAmps();
-				spiking = 0;
-			}
-
-			
-
-			//log
-			updateLogfile(logFile, voltage, amps, ampsDUT, state, spiking, progName);
-			updateSnapshotfile(SNAP_LOG, voltage, amps, state, spiking, mode);*/
-
-			//sleepn
 			sleep(SLEEP_DURATION);
 		}
 	}
 }
+
+/**
+* @brief Gets time as a string
+*
+* @param wakeTimeSec How long from now the time is in seconds 
+* @param wakeTimeStr The desired time in string format
+*/
 
 void getTimeString(int wakeTimeSec, char *wakeTimeStr)
 {
@@ -395,6 +383,11 @@ void getTimeString(int wakeTimeSec, char *wakeTimeStr)
 	return;
 }
 
+/**
+* @brief Clears snapshot file
+*
+* @param snapFileName Name of the snapshot file
+*/
 int clearSnapFile(char *snapFileName)
 {
 	FILE *filesnap = fopen(snapFileName, "w");
@@ -407,6 +400,12 @@ int clearSnapFile(char *snapFileName)
 	return 0;
 }
 
+/**
+* @brief Gets description of current state as string
+*
+* @param state The current state of device - Sleep/low power/override/up
+* @return State as a string
+*/
 char *getStateDesc(int state)
 {
 	switch (state)
@@ -422,7 +421,17 @@ char *getStateDesc(int state)
 	}
 }
 
-
+/**
+* @brief Updates snapshot file showing snapshot of recent activity
+*
+* @param snapFileName Name of snapshot file
+* @param voltage Current voltage
+* @param amps Current amps 
+* @param state Current state
+* @param spiking Whether voltage is spiking
+* @param mode Current mode
+* @return 0 if all ok, -1 if error occurs
+*/
 int updateSnapshotfile(const char *snapFileName, int voltage, int amps, int state, int spiking, char *mode)
 {
 	// Snapshot file is a single line file, overwritten each time with the current and latest values
@@ -458,6 +467,18 @@ int updateSnapshotfile(const char *snapFileName, int voltage, int amps, int stat
 	}
 }
 
+/**
+* @brief Updates snapshot file showing snapshot of recent activity
+*
+* @param logfile Name of log file
+* @param voltage Current voltage
+* @param amps Current amps 
+* @param dutAmps Current amps of device under test
+* @param state Current state
+* @param spiking Whether voltage is spiking
+* @param progName Name of running program
+* @return 0 if all ok, -1 if error occurs
+*/
 int updateLogfile(FILE *logfile, int voltage, int amps, int dutAmps, int state, int spiking, const char *progName)
 {
 	time_t rawTime, time_wanted;
@@ -493,6 +514,10 @@ int updateLogfile(FILE *logfile, int voltage, int amps, int dutAmps, int state, 
 	}
 }
 
+/**
+* @brief Gets program name
+*
+*/
 char *getProgName(char *path)
 {
 	char *ret = strrchr(path, '/'); //returns null if '/' not found
@@ -502,20 +527,12 @@ char *getProgName(char *path)
 		return ret + 1;
 }
 
-int getSleepTime(char *mode)
-{
 
-	if (strncmp(mode, GREEDY_STR, min(strlen(mode), strlen(GREEDY_STR))) == 0)
-	{
-		return GREEDY_SLEEP;
-	}
-	else if (!strncmp(mode, MODERATE_STR, min(strlen(mode), strlen(MODERATE_STR))) == 0)
-	{
-		return MODERATE_SLEEP;
-	}
-
-	return CONSERVATIVE_SLEEP;
-}
+/**
+* @brief Simulates voltage for testing purposes
+*
+*
+*/
 
 int simulateVoltage(struct tm *time, int currentV)
 {
@@ -541,24 +558,50 @@ int simulateVoltage(struct tm *time, int currentV)
 	return currentV + ((rand() % 20) - 5);
 }
 
+/**
+* @brief Simulates amps for testing purposes
+*
+*
+*/ 
+
 int simulateAmps()
 {
 	return (rand() % 2) + 3;
 }
 
+/**
+* @brief Simulates DUT amps for testing purposes
+*
+*
+*/ 
 int simulateDUTAmps()
 {
 	return (rand() % 2) + 3;
 }
 
+/**
+* @brief Concatenates strings
+*
+* @param s1 First string to be concatenated
+* @param s2 Second string to be concatenated
+*
+* @return Result (s1 + s2)
+*/ 
 char *concat(const char *s1, const char *s2)
 {
-	char *result = malloc(strlen(s1) + strlen(s2) + 1); //+1 for the null-terminator
+	char *result = malloc(strlen(s1) + strlen(s2) + 1); 
 	strcpy(result, s1);
 	strcat(result, s2);
 	return result;
 }
 
+/**
+* @brief Creates startup string to be given to wittyPi as parameter
+*
+* @param timeToSleep How long to sleep for in seconds
+*
+* @return String used to tell Pi when to startup
+*/ 
 char *createStartupString(int timeToSleep)
 {
 	time_t time_wanted;
@@ -587,11 +630,18 @@ char *createStartupString(int timeToSleep)
 	return startupTime;
 }
 
-char *createShutdownString(int timeToSleep)
+/**
+* @brief Creates shutdown string to be given to wittyPi as parameter
+*
+* @param timeToWait How long to wait until shutting down
+*
+* @return String used to tell Pi when to shutdown
+*/ 
+char *createShutdownString(int timeToWait)
 {
 	time_t time_wanted;
 	struct tm *timeInfo;
-	time_wanted = time(NULL) + timeToSleep;
+	time_wanted = time(NULL) + timeToWait;
 
 	timeInfo = localtime(&time_wanted);
 	if (timeInfo->tm_isdst > 0)
@@ -606,15 +656,22 @@ char *createShutdownString(int timeToSleep)
 	char minuteBuffer[2];
 	sprintf(hourBuffer, "%d", hour);
 	sprintf(minuteBuffer, "%d", minute);
-	char *startupTime = "/home/pi/code/loradtn-pi/stable/utilities.sh set_shutdown_time ?? ";
-	startupTime = concat(startupTime, hourBuffer);
-	startupTime = concat(startupTime, " ");
-	startupTime = concat(startupTime, minuteBuffer);
-	startupTime = concat(startupTime, " ");
-	startupTime = concat(startupTime, "00");
-	return startupTime;
+	char *shutdownTime = "/home/pi/code/loradtn-pi/stable/utilities.sh set_shutdown_time ?? ";
+	shutdownTime = concat(shutdownTime, hourBuffer);
+	shutdownTime = concat(shutdownTime, " ");
+	shutdownTime = concat(shutdownTime, minuteBuffer);
+	shutdownTime = concat(shutdownTime, " ");
+	shutdownTime = concat(shutdownTime, "00");
+	return shutdownTime;
 }
 
+/**
+* @brief Get length of time to sleep for
+*
+* @param mode Current operation mode
+*
+* @return How long to sleep for in seconds
+*/ 
 int getSleepDuration(char *mode)
 {
 	int sleepDuration = 0;
@@ -639,6 +696,10 @@ int getSleepDuration(char *mode)
 	return sleepDuration;
 }
 
+/**
+* @brief Turn on kerlink Gateway
+*
+*/ 
 void kerOn()
 {
 	int ret;
@@ -652,6 +713,10 @@ void kerOn()
 	}
 }
 
+/**
+* @brief Turn off kerlink Gateway
+*
+*/ 
 void kerOff()
 {
 	int ret;
@@ -664,6 +729,13 @@ void kerOff()
 		syslog(LOG_NOTICE, "Ran ker-off. ret: %d", ret);
 	}
 }
+
+/**
+* @brief Check if voltages should be read or simulated
+*
+* @param mode Simulate string parameter (SIM or NOSIM)
+* @return Int that describes mode (simulate or no simulate)
+*/ 
 
 int getVoltMode(char* mode)
 {

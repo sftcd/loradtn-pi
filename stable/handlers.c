@@ -1,3 +1,11 @@
+/**
+ * @file handlers.c
+ * @date 30 April 2018
+ * @brief Phidget handlers
+ *
+ * 
+ */
+
 #include "handlers.h"
 
 int IFK_DetachHandler(CPhidgetHandle IFK, void *userptr)
